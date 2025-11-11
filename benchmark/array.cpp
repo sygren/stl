@@ -1,9 +1,7 @@
 #include <benchmark/benchmark.h>
+
 #include <vector>
 #include "../core/array.hpp"
-
-static std::atomic<size_t> g_alloc_count{0};
-static std::atomic<size_t> g_alloc_bytes{0};
 
 // Benchmark push_back
 static void BM_Array_Push(benchmark::State& state) {

@@ -7,6 +7,4 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 add_executable(${PROJECT_NAME} main.cpp)
 
-target_sources(${PROJECT_NAME} PRIVATE 
-    core/alloc.cpp
-)
+target_sources(${PROJECT_NAME} PRIVATE )

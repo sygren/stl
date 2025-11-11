@@ -1,4 +1,4 @@
-#pragma once
+#pragma once 
 
 #include "alloc.hpp"
 #include "iterator.hpp"
@@ -9,7 +9,7 @@
 #include <type_traits>
 #include <utility>
 
-template <typename T> class Array {
+template <typename T, AllocatorFor<T> Allocator = DefaultAllocator<T>> class Array {
 public:
   Array() = default;
   explicit Array(size_t capacity);
@@ -41,6 +41,11 @@ public:
   Iterator<T> End() const;
 
 private:
+#ifdef _MSC_VER
+  [[msvc::no_unique_address]] Allocator allocator_;
+#else
+  [[no_unique_address]] Allocator allocator_;
+#endif
   T *ptr_ = nullptr;
   size_t capacity_ = 0;
   size_t length_ = 0;
@@ -48,26 +53,27 @@ private:
   void ReAllocate(size_t capacity);
 }; // class Array
 
-template <typename T>
-Array<T>::Array(size_t capacity)
-    : ptr_(KS_ALLOC(T, capacity)), capacity_(capacity) {}
+template <typename T, AllocatorFor<T> Allocator>
+Array<T, Allocator>::Array(size_t capacity)
+    : allocator_(), ptr_(allocator_.Allocate(capacity)), capacity_(capacity) {}
 
-template <typename T>
-Array<T>::Array(size_t capacity, const T &item)
-    : ptr_(KS_ALLOC(T, capacity)), capacity_(capacity), length_(capacity) {
+template <typename T, AllocatorFor<T> Allocator>
+Array<T, Allocator>::Array(size_t capacity, const T &item)
+    : allocator_(), ptr_(allocator_.Allocate(capacity)), capacity_(capacity),
+      length_(capacity) {
   for (size_t i = 0; i < length_; i++)
     new (ptr_ + i) T(item);
 }
 
-template <typename T> Array<T>::~Array() { Clear(); }
+template <typename T, AllocatorFor<T> Allocator> Array<T, Allocator>::~Array() { Clear(); }
 
-template <typename T> void Array<T>::Reserve(size_t capacity) {
+template <typename T, AllocatorFor<T> Allocator> void Array<T, Allocator>::Reserve(size_t capacity) {
   assert(capacity > 0);
   if (capacity > capacity_)
     ReAllocate(capacity);
 }
 
-template <typename T> void Array<T>::Resize(size_t size) {
+template <typename T, AllocatorFor<T> Allocator> void Array<T, Allocator>::Resize(size_t size) {
   if (size < length_) {
     for (size_t i = size; i < length_; i++)
       ptr_[i].~T();
@@ -79,63 +85,65 @@ template <typename T> void Array<T>::Resize(size_t size) {
     ReAllocate(size);
   for (size_t i = length_; i < size; i++)
     new (ptr_ + i) T();
-  
+
   length_ = size;
 }
 
-template <typename T> T Array<T>::Get(size_t index) const {
+template <typename T, AllocatorFor<T> Allocator> T Array<T, Allocator>::Get(size_t index) const {
   assert(index < length_);
   return ptr_[index];
 }
 
-template <typename T> T &Array<T>::GetRef(size_t index) {
+template <typename T, AllocatorFor<T> Allocator> T &Array<T, Allocator>::GetRef(size_t index) {
   assert(index < length_);
   return ptr_[index];
 }
 
-template <typename T> T &Array<T>::operator[](size_t index) {
+template <typename T, AllocatorFor<T> Allocator> T &Array<T, Allocator>::operator[](size_t index) {
   return GetRef(index);
 }
 
-template <typename T> const T &Array<T>::operator[](size_t index) const {
+template <typename T, AllocatorFor<T> Allocator>
+const T &Array<T, Allocator>::operator[](size_t index) const {
   return GetRef(index);
 }
 
-template <typename T> void Array<T>::Push(const T &item) {
+template <typename T, AllocatorFor<T> Allocator> void Array<T, Allocator>::Push(const T &item) {
   if (length_ + 1 > capacity_)
     ReAllocate((capacity_ * 2) + 1);
   new (ptr_ + length_) T(item);
   length_++;
 }
 
-template <typename T> void Array<T>::Push(T &&item) {
+template <typename T, AllocatorFor<T> Allocator> void Array<T, Allocator>::Push(T &&item) {
   if (length_ + 1 > capacity_)
     ReAllocate((capacity_ * 2) + 1);
   new (ptr_ + length_) T(std::move(item));
   length_++;
 }
 
-template <typename T> void Array<T>::Clear() {
+template <typename T, AllocatorFor<T> Allocator> void Array<T, Allocator>::Clear() {
   for (size_t i = 0; i < length_; i++)
     ptr_[i].~T();
-  KS_FREE(ptr_);
+  allocator_.Free(ptr_);
   ptr_ = nullptr;
   length_ = 0;
   capacity_ = 0;
 }
 
-template <typename T> Iterator<T> Array<T>::Begin() const {
+template <typename T, AllocatorFor<T> Allocator> Iterator<T> Array<T, Allocator>::Begin() const {
   return Iterator<T>(ptr_, 0, length_);
 }
 
-template <typename T> Iterator<T> Array<T>::End() const {
+template <typename T, AllocatorFor<T> Allocator> Iterator<T> Array<T, Allocator>::End() const {
   return Iterator<T>(ptr_, length_, length_);
 }
 
-template <typename T> void Array<T>::ReAllocate(size_t capacity) {
+template <typename T, AllocatorFor<T> Allocator>
+void Array<T, Allocator>::ReAllocate(size_t capacity) {
   assert(capacity > length_);
   capacity_ = capacity;
-  T *new_ptr = KS_ALLOC(T, capacity_);
+  T *new_ptr = allocator_.Allocate(capacity_);
   if constexpr (std::is_trivially_copyable_v<T>) {
     memcpy(new_ptr, ptr_, length_ * sizeof(T));
   } else {
@@ -145,6 +153,6 @@ template <typename T> void Array<T>::ReAllocate(size_t capacity) {
     }
   }
 
-  KS_FREE(ptr_);
+  allocator_.Free(ptr_);
   ptr_ = new_ptr;
 }

@@ -5,6 +5,7 @@
 #include <vector>
 
 int main() {
+  int *leak = new int(10);
   std::vector<int> vec;
   Array<std::string> names; 
   names.Push("salut");
@@ -16,7 +17,7 @@ int main() {
   id.Push(9);
 
   for (auto it = names.Begin(); it != names.End(); it++)
-    std::cout << *it << "\n";
+    std::cout << *it << std::endl;
 
   return 0;
 }
