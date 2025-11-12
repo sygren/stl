@@ -5,6 +5,12 @@
 #include <concepts>
 #include <type_traits>
 
+#if defined(_MSC_VER)
+#define NO_UNIQUE_ADDRESS [[msvc::no_unique_address]]
+#else
+#define NO_UNIQUE_ADDRESS [[no_unique_address]]
+#endif
+
 /* This is a concept that checks if a certain type A, is an allocator for the type T.
  * It checks if the type A contains two methods:
  *  T *Allocate(size_t)
