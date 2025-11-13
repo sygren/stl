@@ -14,7 +14,7 @@ public:
   Iterator(Iterator &it) = default;
   Iterator(Iterator &&it) = default;
 
-  Iterator &operator=(Iterator const&it) = default;
+  Iterator &operator=(Iterator const &it) = default;
   Iterator &operator=(Iterator &&it) = default;
 
   Iterator &operator++();
