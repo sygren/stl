@@ -3,13 +3,6 @@
 #include <cstddef>
 #include <cstdlib>
 #include <concepts>
-#include <type_traits>
-
-#if defined(_MSC_VER)
-#define NO_UNIQUE_ADDRESS [[msvc::no_unique_address]]
-#else
-#define NO_UNIQUE_ADDRESS [[no_unique_address]]
-#endif
 
 /* This is a concept that checks if a certain type A, is an allocator for the type T.
  * It checks if the type A contains two methods:
@@ -20,10 +13,14 @@
  */
 template<typename A, typename T>
 concept AllocatorFor = requires (A alloc, size_t n, T *ptr) {
-  { alloc.Allocate(n) } -> std::same_as<T*>;
-  { alloc.Free(ptr) } -> std::same_as<void>;
+  { alloc.allocate(n) } -> std::same_as<T*>;
+  { alloc.free(ptr) } -> std::same_as<void>;
 
   requires std::is_default_constructible_v<A>;
+}; // concept AllocatorFor<T>
+
+enum class AllocationError {
+  COULD_NOT_ALLOCATE,
 };
 
 template <typename T> class DefaultAllocator {
@@ -37,14 +34,14 @@ public:
   DefaultAllocator(DefaultAllocator<T> &&allocator) = delete;
   DefaultAllocator &operator=(DefaultAllocator<T> &&allocator) = delete;
 
-  T *Allocate(size_t count);
-  void Free(T *item);
-};
+  T *allocate(size_t count);
+  void free(T *item);
+}; // class DefaultAllocator<T>
 
-template <typename T> T *DefaultAllocator<T>::Allocate(size_t count) {
-  return static_cast<T*>(malloc(sizeof(T) * count));
+template <typename T> T *DefaultAllocator<T>::allocate(size_t count) {
+  return static_cast<T*>(std::malloc(sizeof(T) * count));
 }
 
-template <typename T> void DefaultAllocator<T>::Free(T *item) {
-  free(item);
+template <typename T> void DefaultAllocator<T>::free(T *item) {
+  std::free(item);
 }
