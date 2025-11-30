@@ -1,8 +1,8 @@
 #pragma once
 
+#include <concepts>
 #include <cstddef>
 #include <cstdlib>
-#include <concepts>
 
 /* This is a concept that checks if a certain type A, is an allocator for the type T.
  * It checks if the type A contains two methods:

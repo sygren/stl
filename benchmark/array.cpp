@@ -1,7 +1,7 @@
 #include <benchmark/benchmark.h>
 
 #include <vector>
-#include "../core/arraylist.hpp"
+#include "../core/array_list.hpp"
 
 // Benchmark push_back
 static void BM_ArrayList_push(benchmark::State& state) {

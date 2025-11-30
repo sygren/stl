@@ -5,6 +5,11 @@
 #include <string_view>
 using namespace std;
 
+template<typename T>
+concept DebuggableEnum = requires (T t) {
+  { enum_name(t) };
+};
+
 template<typename Enum, Enum Variant>
 constexpr auto enum_variant_impl() {
   string_view name = __PRETTY_FUNCTION__;

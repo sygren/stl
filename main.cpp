@@ -1,9 +1,9 @@
 #include <iostream>
 
 #include "core/array.hpp"
-#include "core/arraylist.hpp"
+#include "core/array_list.hpp"
 #include "core/enum_debug.hpp"
-#include "core/forwardlist.hpp"
+#include "core/forward_list.hpp"
 #include "core/optional.hpp"
 #include "core/result.hpp"
 

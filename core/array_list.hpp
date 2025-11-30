@@ -1,7 +1,6 @@
 #pragma once
 
 #include "alloc.hpp"
-#include "error.hpp"
 #include "iterator.hpp"
 #include "macros.hpp"
 #include "result.hpp"
@@ -47,8 +46,8 @@ public:
   ArrayList(ArrayList &&item) = delete;
   ArrayList &operator=(ArrayList &&item) = delete;
 
-  error<AllocationError> reserve(size_t capacity);
-  error<AllocationError> resize(size_t size);
+  result<AllocationError> reserve(size_t capacity);
+  result<AllocationError> resize(size_t size);
   T *ptr() { return ptr_; }
   NO_DISCARD size_t length() const { return length_; }
   NO_DISCARD size_t capacity() const { return capacity_; }
@@ -59,8 +58,8 @@ public:
   T &operator[](size_t index);
   const T &operator[](size_t index) const;
 
-  error<AllocationError> push(const T &item);
-  error<AllocationError> emplace(T &&item);
+  result<AllocationError> push(const T &item);
+  result<AllocationError> emplace(T &&item);
   void clear();
 
   Iterator<T> begin();
@@ -72,7 +71,7 @@ private:
   size_t capacity_ = 0;
   size_t length_ = 0;
 
-  error<AllocationError> reallocate(size_t capacity);
+  result<AllocationError> reallocate(size_t capacity);
 }; // class ArrayList<T, Allocator>
 
 template <typename T, AllocatorFor<T> Allocator>
@@ -81,24 +80,24 @@ ArrayList<T, Allocator>::~ArrayList() {
 }
 
 template <typename T, AllocatorFor<T> Allocator>
-error<AllocationError> ArrayList<T, Allocator>::reserve(size_t capacity) {
+result<AllocationError> ArrayList<T, Allocator>::reserve(size_t capacity) {
   assert(capacity > 0);
   if (capacity > capacity_)
-    PROPAGATE_ERROR(reallocate(capacity));
-  return error<AllocationError>::none();
+    PROPAGATE_RESULT(reallocate(capacity));
+  return result<AllocationError>::ok();
 }
 
 template <typename T, AllocatorFor<T> Allocator>
-error<AllocationError> ArrayList<T, Allocator>::resize(size_t size) {
+result<AllocationError> ArrayList<T, Allocator>::resize(size_t size) {
   if (size < length_) {
     for (size_t i = size; i < length_; i++)
       ptr_[i].~T();
     length_ = size;
-    return error<AllocationError>::none();
+    return result<AllocationError>::ok();
   }
 
   if (size > capacity_)
-    PROPAGATE_ERROR(reallocate(size));
+    PROPAGATE_RESULT(reallocate(size));
   for (size_t i = length_; i < size; i++)
     new (ptr_ + i) T();
 
@@ -134,21 +133,21 @@ const T &ArrayList<T, Allocator>::operator[](size_t index) const {
 }
 
 template <typename T, AllocatorFor<T> Allocator>
-error<AllocationError> ArrayList<T, Allocator>::push(const T &item) {
+result<AllocationError> ArrayList<T, Allocator>::push(const T &item) {
   if (length_ + 1 > capacity_)
-    PROPAGATE_ERROR(reallocate((capacity_ * 2) + 1));
+    PROPAGATE_RESULT(reallocate((capacity_ * 2) + 1));
   new (ptr_ + length_) T(item);
   length_++;
-  return error<AllocationError>::none();
+  return result<AllocationError>::ok();
 }
 
 template <typename T, AllocatorFor<T> Allocator>
-error<AllocationError> ArrayList<T, Allocator>::emplace(T &&item) {
+result<AllocationError> ArrayList<T, Allocator>::emplace(T &&item) {
   if (length_ + 1 > capacity_)
-    PROPAGATE_ERROR(reallocate((capacity_ * 2) + 1));
+    PROPAGATE_RESULT(reallocate((capacity_ * 2) + 1));
   new (ptr_ + length_) T(move(item));
   length_++;
-  return error<AllocationError>::none();
+  return result<AllocationError>::ok();
 }
 
 template <typename T, AllocatorFor<T> Allocator>
@@ -172,7 +171,7 @@ Iterator<T> ArrayList<T, Allocator>::end() {
 }
 
 template <typename T, AllocatorFor<T> Allocator>
-error<AllocationError> ArrayList<T, Allocator>::reallocate(size_t capacity) {
+result<AllocationError> ArrayList<T, Allocator>::reallocate(size_t capacity) {
   assert(capacity > length_);
   capacity_ = capacity;
   T *new_ptr = allocator_.allocate(capacity_);
@@ -189,5 +188,5 @@ error<AllocationError> ArrayList<T, Allocator>::reallocate(size_t capacity) {
 
   allocator_.free(ptr_);
   ptr_ = new_ptr;
-  return error<AllocationError>::none();
+  return result<AllocationError>::ok();
 }

@@ -1,8 +1,8 @@
 #pragma once
 
 #include "alloc.hpp"
-#include "error.hpp"
 #include "macros.hpp"
+#include "result.hpp"
 #include <cassert>
 #include <cstddef>
 
@@ -47,7 +47,26 @@ public:
   }
   T &operator[](size_t index) { return get_ref(index); }
 
-  error<AllocationError> push(const T &item) {
+  result<AllocationError> insert(size_t index, const T &item) {
+    assert(index < length_);
+    auto *new_node = allocator_.allocate(1);
+    if (new_node == nullptr)
+      return AllocationError::COULD_NOT_ALLOCATE;
+
+    new (&(new_node->val_)) T(item);
+    new_node->next_ = nullptr;
+
+    auto ptr = start_;
+    for (size_t i = 0; i < index-1; i++)
+      ptr = ptr->next_;
+
+    new_node = ptr->next_->next_;
+    ptr->next_ = new_node;
+
+    return result<AllocationError>::ok();
+  }
+
+  result<AllocationError> push(const T &item) {
     auto *new_node = allocator_.allocate(1);
     if (new_node == nullptr)
       return AllocationError::COULD_NOT_ALLOCATE;
@@ -64,10 +83,10 @@ public:
     }
 
     length_++;
-    return error<AllocationError>::none();
+    return result<AllocationError>::ok();
   }
 
-  error<AllocationError> push_front(const T &item) {
+  result<AllocationError> push_front(const T &item) {
     auto *new_node = allocator_.allocate(1);
     if (new_node == nullptr)
       return AllocationError::COULD_NOT_ALLOCATE;
@@ -80,7 +99,7 @@ public:
       end_ = start_;
 
     length_++;
-    return error<AllocationError>::none();
+    return result<AllocationError>::ok();
   }
 
   void remove(size_t index) {
@@ -95,10 +114,6 @@ public:
   }
 
   void clear() { cleanup(); }
-
-  error<AllocationError> always_a_failure() {
-    return AllocationError::COULD_NOT_ALLOCATE;
-  }
 
 private:
   Node *get_node(size_t index) const {
