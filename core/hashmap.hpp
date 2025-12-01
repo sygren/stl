@@ -1,32 +1,46 @@
 #pragma once
 
-#include "alloc.hpp"
-#include "iterator.hpp"
+#include "array_list.hpp"
+#include "optional.hpp"
 
-template <typename K, typename V,
-          AllocatorFor<K> AllocatorK = DefaultAllocator<K>,
-          AllocatorFor<V> AllocatorV = DefaultAllocator<V>>
-class HashMap {
-public:
-  HashMap();
+#include <concepts>
+#include <cstdint>
 
-  void Insert(K &key, V &item);
-  void Delete(K &key);
-  V Search(K &key);
-  V &SearchRef(K &key);
-  bool Contains(K &key);
+template <typename Hash, typename T>
+concept HashFor = requires(T item) {
+  { Hash::hash(item) } -> same_as<size_t>;
+};
 
+template <typename K, typename V, HashFor<K> Hash> class SwissTable {
 private:
-  struct Pair {
-    K key_;
-    V item_;
+  template <typename T1, typename T2> struct Group {
+    T1 key_;
+    T2 val_;
   };
 
+  static constexpr uint8_t EMPTY = 0b10000000;
+  static constexpr uint8_t DELETED = 0b11111110;
+
+  ArrayList<uint8_t> metadata_;
+  ArrayList<Group<K, V>> table_;
+
 public:
-  Iterator<struct Pair> Begin() const;
-  Iterator<struct Pair> End() const;
+  optional<V> find(const K &key) {
+    size_t h = Hash::hash(key);
+    size_t h1 = h >> 7;
+    size_t h2 = h & 0x7F;
+
+    for (size_t i = h2; i < metadata_.length(); i++) {
+      uint8_t ctrl = metadata_[i];
+      if (ctrl == EMPTY) return optional<V>::none();
+      if (ctrl == DELETED) continue;
+
+      if (h2 == (metadata_[i] & 0x7F)) 
+        return table_[h1];
+    }
+
+    return optional<V>::none();
+  }
 
 private:
-  NO_UNIQUE_ADDRESS AllocatorK key_allocator_;
-  NO_UNIQUE_ADDRESS AllocatorV value_allocator_;
 };
